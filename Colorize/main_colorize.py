@@ -64,34 +64,10 @@ def VGG_16(weights_path=None):
 
     return model
 
-def generate_maps(model, folder, num_samples):
-
-    layers_extract = [3, 8, 15, 22, 29]
-    counter = 0
-    all_hc = np.zeros((num_samples, 1472, 224, 224))
-
-    layers = [model.layers[li].get_output(train=False) for li in layers_extract]
-    get_feature = theano.function([model.layers[0].input], layers,
-                                  allow_input_downcast=False)
-
-    def extract_hypercolumn(instance):
-        # dicti=[model.layers[li].get_config() for li in layer_indexes]
-        feature_maps = get_feature(instance)
-        hypercolumns = np.zeros((1472, 224, 224))
-        ctr = 0
-        for convmap in feature_maps:
-            for fmap in convmap[0]:
-                upscaled = sp.misc.imresize(fmap, size=(224, 224),
-                                            mode="F", interp='bilinear')
-                hypercolumns[ctr] = upscaled
-                ctr += 1
-        return np.asarray(hypercolumns)
-
-    print("Starting Loop")
-
+def Convert2YCrCb(folder,num_samples):
     tic()
     image_list = os.listdir(folder)
-
+    YCrCb = np.zeros((num_samples,3,224,224))
     for i in range(len(image_list)):
         if image_list[i].endswith(".JPEG"):
             im_original = cv2.resize(cv2.imread(folder + image_list[i]), (224, 224)).astype(np.float32)
@@ -102,30 +78,66 @@ def generate_maps(model, folder, num_samples):
             # Converting to YCrCb
             im_converted =(cv2.cvtColor(im_original, cv2.COLOR_BGR2YCR_CB))
             #im_converted[:, :, 0] -= 97.7
-
             # im_converted[:, :, 1] -= 5.436
             # im_converted[:, :, 2] -= -5.63
 
             im = im_converted.transpose((2, 0, 1))
 
+            im = np.expand_dims(im, axis=0)
 
-
-            Y_Channel= im[0, :, :]
-            Y_Channel = np.expand_dims(im[0, :, :], axis=0)
-            Y_Image = np.append(Y_Channel,Y_Channel,axis=0)
-            Y_Image = np.append(Y_Image,Y_Channel,axis=0)
-            Y_Image = np.expand_dims(Y_Image, axis=0)
-
-            hc = extract_hypercolumn(Y_Image)
-            hc = np.expand_dims(hc, axis=0)
-
-            all_hc[counter] = hc
-
-            counter += 1
-            if not counter % 5:
-                print(counter)
-            if not counter % num_samples:
+            YCrCb[i]=im
+        if (i+1)%num_samples==0:
                 break
+
+    toc("Images Converted to YCrCb.")
+    return YCrCb
+
+def GenerateMaps(model, Y_Images):
+    tic()
+    num_samples= len(Y_Images)
+
+    layers_extract = [3, 8, 15, 22, 29]
+
+    all_hc = np.zeros((num_samples, 1473, 50176))
+
+    layers = [model.layers[li].get_output(train=False) for li in layers_extract]
+    get_feature = theano.function([model.layers[0].input], layers,
+                                  allow_input_downcast=False)
+
+    def extract_hypercolumn(instance):
+        # dicti=[model.layers[li].get_config() for li in layer_indexes]
+        feature_maps = get_feature(instance)
+        hypercolumns = np.zeros((1473,50176))
+        hypercolumns[0] = np.reshape(instance[:,0,:,:], (1, 50176))
+        ctr = 1
+        for convmap in feature_maps:
+            for fmap in convmap[0]:
+                upscaled = sp.misc.imresize(fmap, size=(224, 224),
+                                            mode="F", interp='bilinear')
+
+                hypercolumns[ctr] = np.reshape(upscaled, (1, 50176))
+                ctr += 1
+        return np.asarray(hypercolumns)
+
+    print("Starting Loop")
+    counter = 0
+    for i in range(len(Y_Images)):
+
+        Y_Channel = np.expand_dims(Y_Images[i, :, :], axis=0)
+        Y_Image = np.append(Y_Channel,Y_Channel,axis=0)
+        Y_Image = np.append(Y_Image,Y_Channel,axis=0)
+        Y_Image = np.expand_dims(Y_Image, axis=0).astype(np.float32)
+
+        hc = extract_hypercolumn(Y_Image)
+        hc = np.expand_dims(hc, axis=0)
+
+        all_hc[counter] = hc
+
+        counter += 1
+        if not counter % 5:
+            print(counter)
+        if not counter % num_samples:
+            break
 
     toc("Hypercolumns Extracted.")
     return all_hc
@@ -144,21 +156,43 @@ def load_model(filename,weights):
     #pickle.dump(model,open ('kerasmodel','wb'))
     return model
 
-def save_data(all_hc,output_filename):
+def save_data(input,output_filename):
     tic()
     h5f = h5py.File(output_filename, 'w')
-    h5f.create_dataset('dataset', data=all_hc, compression="gzip")
+    h5f.create_dataset('dataset', data=input, compression="gzip")
     h5f.close()
     toc('Data File saved to disk.')
+
+
+def CreateTargets(CrCb):
+    num_samples = len(CrCb)
+    targets=np.reshape(CrCb,(num_samples,2,50176))
+
+    return targets
+
+class data_crcb(object):
+    X=None
+    Y=None
+
+
 
 if __name__ == '__main__':
 
 
     model = load_model('/home/exx/vgg16_weights.h5',weights=0)
-
     folder = '/home/exx/MyTests/MATLABTests/val_images/'
-    all_hc = generate_maps(model, folder, num_samples=20)
 
-    output_filename= 'hc.h5'
-    #save_data(all_hc,output_filename)
+    num_samples=20
+
+    YCrCb = Convert2YCrCb(folder,num_samples)
+    maps = GenerateMaps(model, YCrCb[:,0,:,:])
+    targets = CreateTargets(YCrCb[:,1:,:,:])
+    maps=maps.reshape(1473,num_samples*224*224)
+    targets=targets.reshape(2,num_samples*224*224)
+    data_crcb.X=maps
+    data_crcb.Y=targets
+
+    output_filename = 'data_crcb.h5'
+    save_data(data_crcb,output_filename)
+
 

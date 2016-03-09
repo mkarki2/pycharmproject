@@ -1,5 +1,5 @@
 import cv2
-import hypercolumn as hc
+import main_colorize as hc
 import numpy as np
 import matplotlib.pyplot as plt
 
