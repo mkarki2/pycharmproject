@@ -156,11 +156,14 @@ def load_model(filename,weights):
     #pickle.dump(model,open ('kerasmodel','wb'))
     return model
 
-def save_data(input,output_filename):
+def save_data(X,Y,output_filename):
     tic()
-    h5f = h5py.File(output_filename, 'w')
-    h5f.create_dataset('dataset', data=input, compression="gzip")
-    h5f.close()
+    f = h5py.File(output_filename, 'w')
+    grp=f.create_group("data")
+    grp.create_dataset('X', data=X, compression="gzip")
+    grp.create_dataset('Y', data=Y, compression="gzip")
+
+    f.close()
     toc('Data File saved to disk.')
 
 
@@ -169,10 +172,6 @@ def CreateTargets(CrCb):
     targets=np.reshape(CrCb,(num_samples,2,50176))
 
     return targets
-
-class data_crcb(object):
-    X=None
-    Y=None
 
 
 
@@ -187,12 +186,10 @@ if __name__ == '__main__':
     YCrCb = Convert2YCrCb(folder,num_samples)
     maps = GenerateMaps(model, YCrCb[:,0,:,:])
     targets = CreateTargets(YCrCb[:,1:,:,:])
-    maps=maps.reshape(1473,num_samples*224*224)
-    targets=targets.reshape(2,num_samples*224*224)
-    data_crcb.X=maps
-    data_crcb.Y=targets
+    maps=maps.reshape(num_samples*224*224,1473)
+    targets=targets.reshape(num_samples*224*224,2)
 
-    output_filename = 'data_crcb.h5'
-    save_data(data_crcb,output_filename)
+    output_filename = 'data_YCrCb.h5'
+    save_data(maps,targets,output_filename)
 
 

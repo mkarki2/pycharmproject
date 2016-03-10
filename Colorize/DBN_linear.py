@@ -34,7 +34,7 @@ class LinearRegression(object):
         self.p_y_given_x = T.dot(input, self.W) + self.b
 
         # This caused a lot of confusion! It's basically the difference between [x] and x in python.
-        self.y_pred = self.p_y_given_x[:,0]
+        self.y_pred = self.p_y_given_x[:,:]
 
         # Miscellaneous stuff
         self.params = [self.W, self.b]
@@ -157,7 +157,7 @@ class DBN(object):
 
         # allocate symbolic variables for the data
         self.x = T.matrix('x')  # the data is presented as a matrix
-        self.y = T.vector('y')  # the labels are presented as 1D vector
+        self.y = T.matrix('y')  # the labels are presented as 1D vector
                                  # of labels
 
         for i in range(self.n_layers):
@@ -195,7 +195,7 @@ class DBN(object):
 
         self.linRegressionLayer = LinearRegression(input = self.sigmoid_layers[-1].output,
                                                    n_in = hidden_layers_sizes[-1],
-                                                   n_out = 1)
+                                                   n_out = n_outs)
 
         # L1 norm ; one regularization option is to enforce L1 norm to
         # be small
@@ -279,8 +279,8 @@ class DBN(object):
             outputs=self.finetune_cost,
             updates=updates,
             givens={
-                self.x: test_set_x[index * batch_size: (index + 1) * batch_size],
-                self.y: test_set_y[index * batch_size: (index + 1) * batch_size]
+                self.x: train_set_x[index * batch_size: (index + 1) * batch_size],
+                self.y: train_set_y[index * batch_size: (index + 1) * batch_size]
             }
 
         )
@@ -371,7 +371,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
 
     print ('... finetuning the model')
     patience = 4 * n_train_batches
-    patience_increase = 3.
+    patience_increase = 4
     improvement_threshold = 0.995
     validation_frequency = min(n_train_batches, patience / 2)
 
@@ -426,7 +426,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
                            test_score ))
 
                     # save the best model
-                    with open('best_model.pkl', 'wb') as f:
+                    with open('best_model_actual_data.pkl', 'wb') as f:
                         pickle.dump(dbn, f,protocol=pickle.HIGHEST_PROTOCOL)
 
             if patience <= iter:
@@ -445,7 +445,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
                           ' ran for %.2fm' % ((end_time - start_time)
                                               / 60.)), file=sys.stderr)
 
-def predict(filename='best_model.pkl'):
+def predict(X_test,filename='best_model_actual_data.pkl'):
 
     # load the saved model
     model_file = open(filename, 'rb')
@@ -461,13 +461,6 @@ def predict(filename='best_model.pkl'):
     predict_model = theano.function(
         inputs=inputs,
         outputs=y_pred)
-
-    X_test = numpy.random.rand(1000,500)*.75 +.25
-    X_test=  numpy.append(X_test, numpy.random.rand(1000,500)*.75,axis=0)
-
-    y_test = numpy.random.rand(1000,)*.3
-    y_test = numpy.append(y_test, numpy.random.rand(1000,)*.3+.7,axis=0)
-
 
     predicted_values = predict_model(X_test)
 
@@ -492,10 +485,12 @@ if __name__ == '__main__':
 
     y_test = numpy.random.rand(1000,)*.3
     y_test = numpy.append(y_test,numpy.random.rand(1000,)*.3+.7,axis=0)
+
     data = [ (X_train,y_train) , (X_val,y_val),(X_test,y_test) ]
+    print('Need to figureout if self.y = T.matrix or T.vector is correct for the problem')
     test_DBN(finetune_lr=0.1, pretraining_epochs=5,
              pretrain_lr=0.01, k=1, training_epochs=1000,
              L1_reg=0.00, L2_reg=0.0001,
              dataset=data, batch_size=500,
-             layer_sizes=[10, 10,10], output_classes=1,
-             load_from=None, save_to=None)
+             layer_sizes=[10, 10,10], output_classes=1
+             )
