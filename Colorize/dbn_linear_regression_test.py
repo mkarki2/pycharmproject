@@ -9,9 +9,11 @@ train = 1
 prediction = 0
 
 tic()
-f = h5py.File('data_YCrCb.h5', 'r')
+f = h5py.File('data_YCrCb_normalized.h5', 'r')
 X = f['/data/X'][:]
 Y = f['/data/Y'][:]
+# mean_std= f['/data/mean_std'][:]
+
 f.close()
 toc("Data loaded from file.")
 
@@ -29,15 +31,14 @@ X_test = X[num_val:, :]
 Y_test = Y[num_val:, :]
 
 if train == 1:
-
     data = [(X_train, Y_train), (X_val, Y_val), (X_test, Y_test)]
 
-    test_DBN(finetune_lr=0.05, pretraining_epochs=5, L1_reg=0.00,   k=1,
+    test_DBN(finetune_lr=0.1, pretraining_epochs=2, L1_reg=0.00, k=1,
              pretrain_lr=0.01, training_epochs=1000, L2_reg=0.0001,
 
-             dataset=data, batch_size=1024, layer_sizes=[1600,1600], output_classes=2)
+             dataset=data, batch_size=1024, layer_sizes=[50,50], output_classes=2)
 if prediction == 1:
-    output = predict(X_test,filename='best_model_actual_data.pkl')
+    output = predict(X_test, filename='best_model_actual_data.pkl')
     print("Predicted values for the some examples in test set:")
     plt.hist(output)
     plt.show()

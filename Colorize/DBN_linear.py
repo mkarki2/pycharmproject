@@ -371,7 +371,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
 
     print ('... finetuning the model')
     patience = 4 * n_train_batches
-    patience_increase = 4
+    patience_increase = 50
     improvement_threshold = 0.995
     validation_frequency = min(n_train_batches, patience / 2)
 
@@ -471,20 +471,20 @@ if __name__ == '__main__':
     X_train = numpy.random.rand(5000,500)*.75 +.25
     X_train = numpy.append(X_train,numpy.random.rand(5000,500)*.75,axis=0)
 
-    y_train = numpy.random.rand(5000,)*.3
-    y_train = numpy.append(y_train,numpy.random.rand(5000,)*.3+.7,axis=0)
+    y_train = numpy.random.rand(5000,2)*.3
+    y_train = numpy.append(y_train,numpy.random.rand(5000,2)*.3+.7,axis=0)
 
     X_val = numpy.random.rand(1000,500)*.75 +.25
     X_val = numpy.append(X_val,numpy.random.rand(1000,500)*.75,axis=0)
 
-    y_val = numpy.random.rand(1000,)*.3
-    y_val = numpy.append(y_val,numpy.random.rand(1000,)*.3+.7,axis=0)
+    y_val = numpy.random.rand(1000,2)*.3
+    y_val = numpy.append(y_val,numpy.random.rand(1000,2)*.3+.7,axis=0)
 
     X_test = numpy.random.rand(1000,500)*.75 +.25
     X_test = numpy.append(X_test,numpy.random.rand(1000,500)*.75,axis=0)
 
-    y_test = numpy.random.rand(1000,)*.3
-    y_test = numpy.append(y_test,numpy.random.rand(1000,)*.3+.7,axis=0)
+    y_test = numpy.random.rand(1000,2)*.3
+    y_test = numpy.append(y_test,numpy.random.rand(1000,2)*.3+.7,axis=0)
 
     data = [ (X_train,y_train) , (X_val,y_val),(X_test,y_test) ]
     print('Need to figureout if self.y = T.matrix or T.vector is correct for the problem')
@@ -492,5 +492,5 @@ if __name__ == '__main__':
              pretrain_lr=0.01, k=1, training_epochs=1000,
              L1_reg=0.00, L2_reg=0.0001,
              dataset=data, batch_size=500,
-             layer_sizes=[10, 10,10], output_classes=1
+             layer_sizes=[10, 10,10], output_classes=2
              )
