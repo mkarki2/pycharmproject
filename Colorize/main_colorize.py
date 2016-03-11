@@ -160,13 +160,13 @@ def load_model(filename, weights):
     return model
 
 
-def save_data(X, Y, mean_std, output_filename):
+def save_data(X, Y, norm_vals, output_filename):
     tic()
     f = h5py.File(output_filename, 'w')
     grp = f.create_group("data")
     grp.create_dataset('X', data=X, compression="gzip")
     grp.create_dataset('Y', data=Y, compression="gzip")
-    grp.create_dataset('mean_std', data=mean_std, compression="gzip")
+    grp.create_dataset('norm', data=norm_vals, compression="gzip")
     f.close()
     toc('Data File saved to disk.')
     return
@@ -181,13 +181,13 @@ def CreateTargets(CrCb):
 
 def normalize(maps):
     tic()
-    mean = np.min(maps, axis=0)
-    maps = maps - mean
-    std = np.max(maps, axis=0)
-    maps = maps / std
-    mean_std = np.stack((mean, std))
+    sub = np.min(maps, axis=0)
+    maps = maps - sub
+    div = np.max(maps, axis=0)
+    maps = maps / div
+    norm = np.stack((sub, div))
     toc('Data Normalized.')
-    return maps, mean_std
+    return maps, norm
 
 
 if __name__ == '__main__':
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     maps = maps.reshape(num_samples * 224 * 224, 1473)
     targets = targets.reshape(num_samples * 224 * 224, 2)
 
-    maps, mean_std = normalize(maps)
+    maps, norm = normalize(maps)
 
     output_filename = 'data_YCrCb_normalized.h5'
-    save_data(maps, targets,mean_std, output_filename)
+    save_data(maps, targets,norm, output_filename)

@@ -12,14 +12,15 @@ tic()
 f = h5py.File('data_YCrCb_normalized.h5', 'r')
 X = f['/data/X'][:]
 Y = f['/data/Y'][:]
-# mean_std= f['/data/mean_std'][:]
+# norm_vals= f['/data/norm'][:]
 
 f.close()
 toc("Data loaded from file.")
 
-X, Y = shuffle(X, Y, random_state=1)
-num_train = int(0.8 * len(X))
-num_val = int(0.1 * len(X)) + num_train
+train_fraction=0.8
+#X, Y = shuffle(X, Y, random_state=1)
+num_train = int(train_fraction * len(X))
+num_val = int((1-train_fraction)/2 * len(X)) + num_train
 
 X_train = X[0:num_train, :]
 Y_train = Y[0:num_train, :]
@@ -33,10 +34,10 @@ Y_test = Y[num_val:, :]
 if train == 1:
     data = [(X_train, Y_train), (X_val, Y_val), (X_test, Y_test)]
 
-    test_DBN(finetune_lr=0.1, pretraining_epochs=2, L1_reg=0.00, k=1,
+    test_DBN(finetune_lr=0.05, pretraining_epochs=5, L1_reg=0.00, k=1,
              pretrain_lr=0.01, training_epochs=1000, L2_reg=0.0001,
 
-             dataset=data, batch_size=1024, layer_sizes=[50,50], output_classes=2)
+             dataset=data, batch_size=2048, layer_sizes=[1000,1000], output_classes=2)
 if prediction == 1:
     output = predict(X_test, filename='best_model_actual_data.pkl')
     print("Predicted values for the some examples in test set:")

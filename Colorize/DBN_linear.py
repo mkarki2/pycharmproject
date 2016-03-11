@@ -371,7 +371,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
 
     print ('... finetuning the model')
     patience = 4 * n_train_batches
-    patience_increase = 50
+    patience_increase = 3
     improvement_threshold = 0.995
     validation_frequency = min(n_train_batches, patience / 2)
 
@@ -394,12 +394,13 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
                 validation_losses = validate_model()
                 this_validation_loss = numpy.mean(validation_losses)
                 print(
-                    'epoch %i, minibatch %i/%i, validation MSE: %f '
+                    'epoch %i, minibatch %i/%i, validation MSE: %f , training_cost: %f'
                     % (
                         epoch,
                         minibatch_index + 1,
                         n_train_batches,
-                        this_validation_loss
+                        this_validation_loss,
+                        minibatch_avg_cost
                     )
                 )
 
@@ -420,8 +421,8 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
                     # test it on the test set
                     test_losses = test_model()
                     test_score = numpy.mean(test_losses)
-                    print(('     epoch %i, minibatch %i/%i, test MSE: '
-                           'best model %f') %
+                    print(('     \t\nepoch %i, minibatch %i/%i, test MSE: '
+                           'best model %f\n') %
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score ))
 
