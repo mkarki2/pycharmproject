@@ -69,23 +69,23 @@ def VGG_16(weights_path=None):
 def Convert2YCrCb(folder, num_samples):
     tic()
     image_list = os.listdir(folder)
-    YCrCb = np.zeros((num_samples, 3, 224, 224))
+    YCrCb = np.zeros((num_samples, 224, 224,3))
     for i in range(len(image_list)):
         if image_list[i].endswith(".JPEG"):
             im_original = cv2.resize(cv2.imread(folder + image_list[i]), (224, 224)).astype(np.float32)
-            im_original[:, :, 0] -= 103.939
-            im_original[:, :, 1] -= 116.779
-            im_original[:, :, 2] -= 123.68
+            # im_original[:, :, 0] -= 103.939
+            # im_original[:, :, 1] -= 116.779
+            # im_original[:, :, 2] -= 123.68
 
             # Converting to YCrCb
             im_converted = (cv2.cvtColor(im_original, cv2.COLOR_BGR2YCR_CB))
-            # im_converted[:, :, 0] -= 97.7
-            # im_converted[:, :, 1] -= 5.436
-            # im_converted[:, :, 2] -= -5.63
+            im_converted[:, :, 0] -= 97.7
+            im_converted[:, :, 1] -= 5.436
+            im_converted[:, :, 2] -= -5.63
 
-            im = im_converted.transpose((2, 0, 1))
+            #im = im_converted.transpose((2, 0, 1))
 
-            im = np.expand_dims(im, axis=0)
+            im = np.expand_dims(im_converted, axis=0)
 
             YCrCb[i] = im
         if (i + 1) % num_samples == 0:
@@ -111,7 +111,7 @@ def GenerateMaps(model, Y_Images):
         # dicti=[model.layers[li].get_config() for li in layer_indexes]
         feature_maps = get_feature(instance)
         hypercolumns = np.zeros((1473, 50176))
-        hypercolumns[0] = np.reshape(instance[:, 0, :, :], (1, 50176))
+        hypercolumns[0] = np.reshape(instance[:, 0, :,:], (1, 50176))
         ctr = 1
         for convmap in feature_maps:
             for fmap in convmap[0]:
@@ -160,13 +160,14 @@ def load_model(filename, weights):
     return model
 
 
-def save_data(X, Y, norm_vals, output_filename):
+def save_data(X, Y, norm_y,norm_c, output_filename):
     tic()
     f = h5py.File(output_filename, 'w')
     grp = f.create_group("data")
     grp.create_dataset('X', data=X, compression="gzip")
     grp.create_dataset('Y', data=Y, compression="gzip")
-    grp.create_dataset('norm', data=norm_vals, compression="gzip")
+    grp.create_dataset('norm_y', data=norm_y, compression="gzip")
+    grp.create_dataset('norm_c', data=norm_c, compression="gzip")
     f.close()
     toc('Data File saved to disk.')
     return
@@ -179,15 +180,14 @@ def CreateTargets(CrCb):
     return targets
 
 
-def normalize(maps):
-    tic()
-    sub = np.min(maps, axis=0)
-    maps = maps - sub
-    div = np.max(maps, axis=0)
-    maps = maps / div
+def normalize(matrix):
+    sub = np.mean(matrix, axis=0)
+    matrix -= sub
+    div = np.std(matrix, axis=0)
+    matrix /= div
     norm = np.stack((sub, div))
-    toc('Data Normalized.')
-    return maps, norm
+
+    return matrix, norm
 
 
 if __name__ == '__main__':
@@ -197,12 +197,18 @@ if __name__ == '__main__':
     num_samples = 20
 
     YCrCb = Convert2YCrCb(folder, num_samples)
-    maps = GenerateMaps(model, YCrCb[:, 0, :, :])
-    targets = CreateTargets(YCrCb[:, 1:, :, :])
+    maps = GenerateMaps(model, YCrCb[:,:,:,0])
+    targets = CreateTargets(YCrCb[:, :, :, 1:])
     maps = maps.reshape(num_samples * 224 * 224, 1473)
     targets = targets.reshape(num_samples * 224 * 224, 2)
 
-    maps, norm = normalize(maps)
+    tic()
+    maps, norm1 = normalize(maps)
+    targets[:,0], norm2 = normalize(targets[:,0])
+    targets[:,1], norm3 = normalize(targets[:,1])
+    norm2=np.stack((norm2,norm3))
+    toc('Data Normalized.')
 
     output_filename = 'data_YCrCb_normalized.h5'
-    save_data(maps, targets,norm, output_filename)
+
+    save_data(maps, targets,norm1,norm2, output_filename)

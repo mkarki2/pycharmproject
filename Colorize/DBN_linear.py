@@ -421,7 +421,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
                     # test it on the test set
                     test_losses = test_model()
                     test_score = numpy.mean(test_losses)
-                    print(('     \t\nepoch %i, minibatch %i/%i, test MSE: '
+                    print(('     \tepoch %i, minibatch %i/%i, test MSE: '
                            'best model %f\n') %
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_score ))

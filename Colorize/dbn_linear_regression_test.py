@@ -12,7 +12,8 @@ tic()
 f = h5py.File('data_YCrCb_normalized.h5', 'r')
 X = f['/data/X'][:]
 Y = f['/data/Y'][:]
-# norm_vals= f['/data/norm'][:]
+norm_y= f['/data/norm_y'][:]
+norm_c= f['/data/norm_c'][:]
 
 f.close()
 toc("Data loaded from file.")
@@ -22,22 +23,22 @@ train_fraction=0.8
 num_train = int(train_fraction * len(X))
 num_val = int((1-train_fraction)/2 * len(X)) + num_train
 
-X_train = X[0:num_train, :]
+X_train = X[0:num_train, 0:1]
 Y_train = Y[0:num_train, :]
 
-X_val = X[num_train:num_val, :]
+X_val = X[num_train:num_val, 0:1]
 Y_val = Y[num_train:num_val, :]
 
-X_test = X[num_val:, :]
+X_test = X[num_val:, 0:1]
 Y_test = Y[num_val:, :]
 
 if train == 1:
     data = [(X_train, Y_train), (X_val, Y_val), (X_test, Y_test)]
 
-    test_DBN(finetune_lr=0.05, pretraining_epochs=5, L1_reg=0.00, k=1,
+    test_DBN(finetune_lr=0.001, pretraining_epochs=1, L1_reg=0.00, k=1,
              pretrain_lr=0.01, training_epochs=1000, L2_reg=0.0001,
 
-             dataset=data, batch_size=2048, layer_sizes=[1000,1000], output_classes=2)
+             dataset=data, batch_size=4096, layer_sizes=[100,100], output_classes=2)
 if prediction == 1:
     output = predict(X_test, filename='best_model_actual_data.pkl')
     print("Predicted values for the some examples in test set:")
