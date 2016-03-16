@@ -64,11 +64,11 @@ def VGG_16(weights_path=None):
     return model
 
 
-def Convert2YCrCb(folder, num_samples):
+def Convert2YCrCb(folder, samples_range):
     tic()
     image_list = os.listdir(folder)
-    YCrCb = np.zeros((num_samples, 224, 224, 3))  # YCrCb = np.zeros((num_samples, 224, 224,3))
-    for i in range(len(image_list)):
+    YCrCb = np.zeros((len(samples_range), 224, 224, 3))  # YCrCb = np.zeros((num_samples, 224, 224,3))
+    for i in samples_range:
         if image_list[i].endswith(".JPEG"):
             im_original = cv2.resize(cv2.imread(folder + image_list[i]), (224, 224))
             # im_original[:, :, 0] -= 103.939
@@ -76,16 +76,18 @@ def Convert2YCrCb(folder, num_samples):
             # im_original[:, :, 2] -= 123.68
 
             # Converting to YCrCb
-            im_converted = (cv2.cvtColor(im_original, cv2.COLOR_BGR2YCR_CB)).astype(np.float32)/255
+            im_converted = (cv2.cvtColor(im_original, cv2.COLOR_BGR2YCR_CB)).astype(np.float32) / 255
             # im_converted[:, :, 0] -= 0.4458
             # im_converted[:, :, 1] -= 0.5213
             # im_converted[:, :, 2] -= 0.4779
             # im = im_converted.transpose((2, 0, 1))
 
             im = np.expand_dims(im_converted, axis=0)
-            YCrCb[i] = im
-        if (i + 1) % num_samples == 0:
-            break
+
+            YCrCb[i - 20] = im
+
+        # if i == 29:  # if (i + 1) % num_samples == 0:
+        #     break
 
     toc("Images Converted to YCrCb.")
     return YCrCb
@@ -196,22 +198,17 @@ if __name__ == '__main__':
     model = load_model('/home/exx/vgg16_weights.h5', weights=0)
     folder = '/home/exx/MyTests/MATLABTests/val_images/'
 
-    num_samples = 20
+    samples_range = range(20, 30)
+    num_samples = len(samples_range)
 
-    YCrCb = Convert2YCrCb(folder, num_samples)
+    YCrCb = Convert2YCrCb(folder, samples_range)
 
     maps = GenerateMaps(model, YCrCb[:, :, :, 0])
     targets = CreateTargets(YCrCb[:, :, :, 1:])
     maps = maps.reshape(num_samples * 224 * 224, 1473)
     targets = targets.reshape(num_samples * 224 * 224, 2)
 
-    tic()
-    maps, norm= normalize(maps)
-    # targets[:,0], norm2 = normalize(targets[:,0])
-    # targets[:,1], norm3 = normalize(targets[:,1])
-    # norm2=np.stack((norm2,norm3))
-    toc('Data Normalized.')
+    norm = []
+    output_filename = 'separate_test_YCrCb.h5'
 
-    output_filename = 'data_YCrCb_normalized.h5'
-
-    save_data(maps, targets,norm, output_filename)
+    save_data(maps, targets, norm, output_filename)

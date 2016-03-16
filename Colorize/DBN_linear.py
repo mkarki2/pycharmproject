@@ -274,6 +274,7 @@ class DBN(object):
         updates=[]
         for param, gparam in zip(self.params, gparams):
             updates.append((param, param - gparam * learning_rate))
+
         train_fn = theano.function(
             inputs=[index],
             outputs=self.finetune_cost,
@@ -363,7 +364,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
 
     # get the training, validation and testing function for the model
     print ('... getting the finetuning functions')
-    train_fn, validate_model, test_model = dbn.finetune(
+    train_fn, valid_score, test_score = dbn.finetune(
         batch_size=batch_size,
         datasets=datasets,
         learning_rate=finetune_lr
@@ -376,7 +377,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
     validation_frequency = min(n_train_batches, patience / 2)
 
     best_validation_loss = numpy.inf
-    test_score = 0.
+    test_error = 0.
     start_time = timeit.default_timer()
 
     done_looping = False
@@ -391,7 +392,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
 
             if (iter + 1) % validation_frequency == 0:
 
-                validation_losses = validate_model()
+                validation_losses = valid_score()
                 this_validation_loss = numpy.mean(validation_losses)
                 print(
                     'epoch %i, minibatch %i/%i, validation MSE: %f , training_cost: %f'
@@ -419,12 +420,12 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
                     best_iter = iter
 
                     # test it on the test set
-                    test_losses = test_model()
-                    test_score = numpy.mean(test_losses)
+                    test_losses = test_score()
+                    test_error = numpy.mean(test_losses)
                     print(('     \tepoch %i, minibatch %i/%i, test MSE: '
                            'best model %f\n') %
                           (epoch, minibatch_index + 1, n_train_batches,
-                           test_score ))
+                           test_error ))
 
                     # save the best model
                     with open('best_model_actual_data.pkl', 'wb') as f:
@@ -439,7 +440,7 @@ def test_DBN(finetune_lr, pretraining_epochs,pretrain_lr, k, training_epochs,
         (
             'Optimization complete with best validation score of %f, '
             'with test performance %f'
-        ) % (best_validation_loss, test_score)
+        ) % (best_validation_loss, test_error)
     )
     print(('The fine tuning code in file ' +
                           os.path.split(__file__)[1] +
@@ -463,7 +464,7 @@ def predict(X_test,filename='best_model_actual_data.pkl'):
         inputs=inputs,
         outputs=y_pred)
 
-    predicted_values = predict_model(X_test)
+    predicted_values = predict_model(X_test.astype(numpy.float32))
 
     return predicted_values
 
