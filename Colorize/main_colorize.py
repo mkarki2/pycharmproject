@@ -67,6 +67,7 @@ def VGG_16(weights_path=None):
 def Convert2YCrCb(folder, num_samples):
     tic()
     image_list = os.listdir(folder)
+    image_list.sort()
     YCrCb = np.zeros((num_samples, 224, 224, 3))  # YCrCb = np.zeros((num_samples, 224, 224,3))
     for i in range(len(image_list)):
         if image_list[i].endswith(".JPEG"):
@@ -76,7 +77,7 @@ def Convert2YCrCb(folder, num_samples):
             # im_original[:, :, 2] -= 123.68
 
             # Converting to YCrCb
-            im_converted = (cv2.cvtColor(im_original, cv2.COLOR_BGR2YCR_CB)).astype(np.float32)/255
+            im_converted = (cv2.cvtColor(im_original, cv2.COLOR_BGR2YCR_CB)).astype(np.float32) / 255
             # im_converted[:, :, 0] -= 0.4458
             # im_converted[:, :, 1] -= 0.5213
             # im_converted[:, :, 2] -= 0.4779
@@ -192,12 +193,8 @@ def normalize(x):
     return z, norm
 
 
-if __name__ == '__main__':
+def create_data(num_samples, folder, save,output_filename):
     model = load_model('/home/exx/vgg16_weights.h5', weights=0)
-    folder = '/home/exx/MyTests/MATLABTests/val_images/'
-
-    num_samples = 20
-
     YCrCb = Convert2YCrCb(folder, num_samples)
 
     maps = GenerateMaps(model, YCrCb[:, :, :, 0])
@@ -206,12 +203,19 @@ if __name__ == '__main__':
     targets = targets.reshape(num_samples * 224 * 224, 2)
 
     tic()
-    maps, norm= normalize(maps)
-    # targets[:,0], norm2 = normalize(targets[:,0])
-    # targets[:,1], norm3 = normalize(targets[:,1])
+    maps, norm = normalize(maps)
+    # targets[:,0], norm2 = normalize(targets[:,0])        # targets[:,1], norm3 = normalize(targets[:,1])
     # norm2=np.stack((norm2,norm3))
     toc('Data Normalized.')
 
-    output_filename = 'data_YCrCb_normalized.h5'
 
-    save_data(maps, targets,norm, output_filename)
+
+    if save == 1:
+        save_data(maps, targets, norm, output_filename)
+    else:
+        print('Skipped saving.')
+    return maps, targets, norm
+
+
+if __name__ == '__main__':
+    create_data(num_samples=20, folder='/home/exx/PycharmProjects/Train_Imgs/')

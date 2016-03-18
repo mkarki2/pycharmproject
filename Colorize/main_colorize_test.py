@@ -12,7 +12,6 @@ import h5py
 from my_utility import tic, toc
 import pickle
 
-
 def VGG_16(weights_path=None):
     model = Sequential()
     model.add(ZeroPadding2D((1, 1), input_shape=(3, 224, 224)))
@@ -63,10 +62,10 @@ def VGG_16(weights_path=None):
 
     return model
 
-
 def Convert2YCrCb(folder, samples_range):
     tic()
     image_list = os.listdir(folder)
+    image_list.sort()
     YCrCb = np.zeros((len(samples_range), 224, 224, 3))  # YCrCb = np.zeros((num_samples, 224, 224,3))
     for i in samples_range:
         if image_list[i].endswith(".JPEG"):
@@ -91,7 +90,6 @@ def Convert2YCrCb(folder, samples_range):
 
     toc("Images Converted to YCrCb.")
     return YCrCb
-
 
 def GenerateMaps(model, Y_Images):
     tic()
@@ -146,7 +144,6 @@ def GenerateMaps(model, Y_Images):
     toc("Hypercolumns Extracted.")
     return all_hc
 
-
 def load_model(filename, weights):
     tic()
     if weights == 0:  # 1: load from weights file, 0: load from pickle file
@@ -160,7 +157,6 @@ def load_model(filename, weights):
     # pickle.dump(model,open ('kerasmodel','wb'))
     return model
 
-
 def save_data(X, Y, norm, output_filename):
     tic()
     f = h5py.File(output_filename, 'w')
@@ -172,12 +168,10 @@ def save_data(X, Y, norm, output_filename):
     toc('Data File saved to disk.')
     return
 
-
 def CreateTargets(CrCb):
     num_samples = len(CrCb)
     targets = np.reshape(CrCb, (num_samples, 50176, 2))
     return targets
-
 
 def normalize(x):
     min_x = np.min(x, axis=0)
@@ -193,12 +187,11 @@ def normalize(x):
     z[:, 0] = x[:, 0]
     return z, norm
 
-
 if __name__ == '__main__':
     model = load_model('/home/exx/vgg16_weights.h5', weights=0)
-    folder = '/home/exx/MyTests/MATLABTests/val_images/'
+    folder = '/home/exx/PycharmProjects/Test_Imgs/'
 
-    samples_range = range(20, 30)
+    samples_range = range(0,10)
     num_samples = len(samples_range)
 
     YCrCb = Convert2YCrCb(folder, samples_range)
