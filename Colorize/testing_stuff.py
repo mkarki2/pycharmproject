@@ -61,3 +61,22 @@ print('Done')
 # im_converted = (cv2.cvtColor(img, cv2.COLOR_YCR_CB2BGR))
 # cv2.imshow('',im_original)
 # t=1
+
+first_imgs=X[:,0]
+first_imgs=first_imgs.reshape(30,224,224)
+first_img=first_imgs[0,:,:]
+Y_=first_img.reshape(224,224).astype(np.float32)
+Y_=np.expand_dims(Y_,axis=2)
+
+# RB=YCrCb[0, :, :, 1:].astype(np.float32)
+RBs=Y.reshape(30,224,224,2)
+
+RB=RBs[0,:,:,:]
+RB=RB.reshape(224,224,2)
+YRB=np.concatenate((Y_,RB),axis=2).astype(np.float32)
+
+
+output_img = (cv2.cvtColor(YRB, cv2.COLOR_YCR_CB2BGR))
+cv2.imshow('disp',output_img)
+output_folder = "/home/exx/PycharmProjects/Output_Imgs/"
+cv2.imwrite(output_folder + "temp_" + str(1) + ".jpg", output_img*255)

@@ -109,7 +109,7 @@ def GenerateMaps(model, Y_Images):
         feature_maps = get_feature(instance)
         hypercolumns = np.zeros((50176, 1473))
 
-        original_y = instance[:, 0, :, :] + .407
+        original_y = instance[:, 0, :, :] + .407 #original_y can be recovered from R Value in this case
         hypercolumns[:, 0] = np.reshape(original_y, (50176))
         ctr = 1
         for convmap in feature_maps:
@@ -193,7 +193,7 @@ def normalize(x):
     return z, norm
 
 
-def create_data(num_samples, folder, save,output_filename):
+def create_data(num_samples, folder, save,output_filename,test_flag):
     model = load_model('/home/exx/vgg16_weights.h5', weights=0)
     YCrCb = Convert2YCrCb(folder, num_samples)
 
@@ -202,11 +202,12 @@ def create_data(num_samples, folder, save,output_filename):
     maps = maps.reshape(num_samples * 224 * 224, 1473)
     targets = targets.reshape(num_samples * 224 * 224, 2)
 
-    tic()
-    maps, norm = normalize(maps)
-    # targets[:,0], norm2 = normalize(targets[:,0])        # targets[:,1], norm3 = normalize(targets[:,1])
-    # norm2=np.stack((norm2,norm3))
-    toc('Data Normalized.')
+    if test_flag==0:
+        tic()
+        maps, norm = normalize(maps)
+        # targets[:,0], norm2 = normalize(targets[:,0])        # targets[:,1], norm3 = normalize(targets[:,1])
+        # norm2=np.stack((norm2,norm3))
+        toc('Data Normalized.')
 
 
 
@@ -218,4 +219,4 @@ def create_data(num_samples, folder, save,output_filename):
 
 
 if __name__ == '__main__':
-    create_data(num_samples=20, folder='/home/exx/PycharmProjects/Train_Imgs/')
+    create_data(num_samples=20, folder='/home/exx/PycharmProjects/Train_Imgs/',save=1,output_filename='YCrCB_norm.h5',test_flag=0)
