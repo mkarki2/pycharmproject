@@ -202,6 +202,7 @@ def create_data(num_samples, folder, save,output_filename,test_flag):
     maps = maps.reshape(num_samples * 224 * 224, 1473)
     targets = targets.reshape(num_samples * 224 * 224, 2)
 
+    norm=[]
     if test_flag==0:
         tic()
         maps, norm = normalize(maps)

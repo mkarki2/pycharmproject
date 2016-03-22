@@ -80,3 +80,17 @@ output_img = (cv2.cvtColor(YRB, cv2.COLOR_YCR_CB2BGR))
 cv2.imshow('disp',output_img)
 output_folder = "/home/exx/PycharmProjects/Output_Imgs/"
 cv2.imwrite(output_folder + "temp_" + str(1) + ".jpg", output_img*255)
+
+
+
+
+x,y = data[0]
+cr=y[:,0]
+cb=y[:,1]
+cr=np.reshape(cr,(26,224,224))
+cb=np.reshape(cb,(26,224,224))
+# np.histogram(cr)
+# np.histogram(cb)
+import matplotlib.pyplot as plt
+plt.hist(cr)
+plt.hist(cb)

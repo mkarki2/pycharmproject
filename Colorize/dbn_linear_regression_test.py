@@ -25,7 +25,7 @@ def train(load_from_file):
     if load_from_file == 1:
         X, Y, norm = load_saved_data('data_YCrCb_normalized.h5')
     else:
-        X, Y, norm = create_data(folder='/home/exx/PycharmProjects/Train_Imgs/', num_samples=30, save=0,
+        X, Y, norm = create_data(folder='/home/exx/PycharmProjects/Train_Imgs/', num_samples=30, save=1,
                                  output_filename='data_YCrCb_normalized.h5', test_flag=0)
 
     data = divide_data(X, Y, num_train=26, num_val=3)
@@ -33,7 +33,7 @@ def train(load_from_file):
     test_DBN(finetune_lr=0.1, pretraining_epochs=3, L1_reg=0.00, k=1,
              pretrain_lr=0.01, training_epochs=1000, L2_reg=0.0001,
 
-             dataset=data, batch_size=2048, layer_sizes=[100, 100, 100], output_classes=2)
+             dataset=data, batch_size=10, layer_sizes=[100, 100], output_classes=2)
 
     return
 
@@ -65,17 +65,18 @@ def predictor(load_from_file):
     output = predict(Z,
                      filename='best_model_actual_data.pkl')
 
-    mse = ((Y - output) ** 2).mean(axis=None)
+    mse = ((Y * 255 - output * 255) ** 2).mean(axis=None)
+
     print('Prediction Completed with a MSE of :' + str(mse))
     if reconstruct_image == 1:
         display(X_, Y_, name='train')
-        display(Z, output, name='output')
+        display(Z, output, name='output_test')
     return
 
 
 def display(X, Y, name):
     Y_channel = X[:, 0]
-    # Y_channel=  np.ones((Y_channel.shape))*.5
+    # Y_channel = np.ones((Y_channel.shape)) * .5
     # Y_train=  np.ones((Y_train.shape))*.5
     num_samples = int(len(Y_channel) / (224 * 224))
     Y_channel = Y_channel.reshape(num_samples, 224, 224, 1)
@@ -113,6 +114,6 @@ def divide_data(X, Y, num_train, num_val):
 
 
 if 0:
-    train(load_from_file=1)
+    train(load_from_file=1)#load "data" [maps +images] from file
 else:
     predictor(load_from_file=1)
