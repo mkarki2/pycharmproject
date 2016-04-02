@@ -14,7 +14,7 @@ from theano.gof import graph
 from rbm import RBM
 
 
-class LinearRegression(object):
+class Regression(object):
     def __init__(self, input, n_in, n_out):
         """
         :input:  input of the architecture (one mini-batch).
@@ -163,30 +163,30 @@ class DBN(object):
                             hbias=sigmoid_layer.b)
             self.rbm_layers.append(rbm_layer)
 
-        self.linRegressionLayer = LinearRegression(input=self.sigmoid_layers[-1].output,
-                                                   n_in=hidden_layers_sizes[-1],
-                                                   n_out=n_outs)
+        self.regressionLayer = Regression(input=self.sigmoid_layers[-1].output,
+                                          n_in=hidden_layers_sizes[-1],
+                                          n_out=n_outs)
 
         # L1 norm ; one regularization option is to enforce L1 norm to
         # be small
-        self.L1 = abs(self.linRegressionLayer.W).sum()
+        self.L1 = abs(self.regressionLayer.W).sum()
         for i in range(2 * self.n_layers)[0::2]:
             self.L1 += abs(self.params[i]).sum()
 
         # square of L2 norm ; one regularization option is to enforce
         # square of L2 norm to be small
-        self.L2_sqr = (self.linRegressionLayer.W ** 2).sum()
+        self.L2_sqr = (self.regressionLayer.W ** 2).sum()
         for i in range(2 * self.n_layers)[0::2]:
             self.L2_sqr += (self.params[i] ** 2).sum()
 
-        self.squared_errors = self.linRegressionLayer.squared_errors
+        self.squared_errors = self.regressionLayer.squared_errors
 
         self.finetune_cost = self.squared_errors(self.y) + L1_reg * self.L1 + L2_reg * self.L2_sqr
 
-        self.params.extend(self.linRegressionLayer.params)
+        self.params.extend(self.regressionLayer.params)
         self.input = input
 
-        self.y_pred = self.linRegressionLayer.y_pred
+        self.y_pred = self.regressionLayer.y_pred
 
     def pretrain(self, train_set_x, batch_size, k):
 

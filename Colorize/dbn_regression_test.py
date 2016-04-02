@@ -1,4 +1,3 @@
-from DBN_linear import test_DBN, predict
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -6,6 +5,7 @@ import h5py
 from my_utility import tic, toc
 from sklearn.utils import shuffle
 from main_colorize import create_data
+from DBN_linear import test_DBN, predict
 
 
 def load_saved_data(filename):
@@ -33,7 +33,7 @@ def train(load_from_file):
     test_DBN(finetune_lr=0.1, pretraining_epochs=3, L1_reg=0.00, k=1,
              pretrain_lr=0.01, training_epochs=1000, L2_reg=0.0001,
 
-             dataset=data, batch_size=10, layer_sizes=[100, 100], output_classes=2)
+             dataset=data, batch_size=1024, layer_sizes=[100, 100,100], output_classes=2)
 
     return
 
@@ -113,7 +113,7 @@ def divide_data(X, Y, num_train, num_val):
     return [(X_train, Y_train), (X_val, Y_val), (X_test, Y_test)]
 
 
-if 0:
-    train(load_from_file=1)#load "data" [maps +images] from file
+if 1:
+    train(load_from_file=0)#load "data" [maps +images] from file
 else:
     predictor(load_from_file=1)
