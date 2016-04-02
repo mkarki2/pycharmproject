@@ -70,7 +70,7 @@ def Convert2YCrCb(folder, num_samples):
     image_list.sort()
     YCrCb = np.zeros((num_samples, 224, 224, 3))  # YCrCb = np.zeros((num_samples, 224, 224,3))
     for i in range(len(image_list)):
-        if image_list[i].endswith(".JPEG"):
+        if image_list[i].lower().endswith(".jpeg") or image_list[i].lower().endswith(".jpg"):
             im_original = cv2.resize(cv2.imread(folder + image_list[i]), (224, 224))
             # im_original[:, :, 0] -= 103.939
             # im_original[:, :, 1] -= 116.779

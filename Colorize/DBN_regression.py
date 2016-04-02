@@ -10,7 +10,7 @@ import theano
 import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.gof import graph
-
+import matplotlib.pyplot as plt
 from rbm import RBM
 
 
@@ -110,7 +110,6 @@ def convert_dataset(dataset):
     rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y), (test_set_x, test_set_y)]
     return rval, num_features
 
-
 class DBN(object):
     def __init__(self, numpy_rng, n_ins,
                  hidden_layers_sizes, n_outs, L1_reg, L2_reg, theano_rng=None):
@@ -163,30 +162,30 @@ class DBN(object):
                             hbias=sigmoid_layer.b)
             self.rbm_layers.append(rbm_layer)
 
-        self.regressionLayer = Regression(input=self.sigmoid_layers[-1].output,
-                                          n_in=hidden_layers_sizes[-1],
-                                          n_out=n_outs)
+        self.linRegressionLayer = Regression(input=self.sigmoid_layers[-1].output,
+                                                   n_in=hidden_layers_sizes[-1],
+                                                   n_out=n_outs)
 
         # L1 norm ; one regularization option is to enforce L1 norm to
         # be small
-        self.L1 = abs(self.regressionLayer.W).sum()
+        self.L1 = abs(self.linRegressionLayer.W).sum()
         for i in range(2 * self.n_layers)[0::2]:
             self.L1 += abs(self.params[i]).sum()
 
         # square of L2 norm ; one regularization option is to enforce
         # square of L2 norm to be small
-        self.L2_sqr = (self.regressionLayer.W ** 2).sum()
+        self.L2_sqr = (self.linRegressionLayer.W ** 2).sum()
         for i in range(2 * self.n_layers)[0::2]:
             self.L2_sqr += (self.params[i] ** 2).sum()
 
-        self.squared_errors = self.regressionLayer.squared_errors
+        self.squared_errors = self.linRegressionLayer.squared_errors
 
-        self.finetune_cost = self.squared_errors(self.y) + L1_reg * self.L1 + L2_reg * self.L2_sqr
+        self.finetune_cost = (self.squared_errors(self.y)).sum() + L1_reg * self.L1 + L2_reg * self.L2_sqr
 
-        self.params.extend(self.regressionLayer.params)
+        self.params.extend(self.linRegressionLayer.params)
         self.input = input
 
-        self.y_pred = self.regressionLayer.y_pred
+        self.y_pred = self.linRegressionLayer.y_pred
 
     def pretrain(self, train_set_x, batch_size, k):
 
@@ -285,7 +284,7 @@ class DBN(object):
 
 
 def test_DBN(finetune_lr, pretraining_epochs, pretrain_lr, k, training_epochs,
-             L1_reg, L2_reg, dataset, batch_size, layer_sizes, output_classes):
+             L1_reg, L2_reg,model_out_filename, dataset, batch_size, layer_sizes, output_classes):
     datasets, features = convert_dataset(dataset)
 
     train_set_x, train_set_y = datasets[0]
@@ -341,7 +340,7 @@ def test_DBN(finetune_lr, pretraining_epochs, pretrain_lr, k, training_epochs,
 
     print('... finetuning the model')
     patience = 4 * n_train_batches
-    patience_increase = 25
+    patience_increase = 10000
     improvement_threshold = 0.995
     validation_frequency = int(min(n_train_batches, patience / 2))
 
@@ -370,7 +369,7 @@ def test_DBN(finetune_lr, pretraining_epochs, pretrain_lr, k, training_epochs,
                         minibatch_index + 1,
                         n_train_batches,
                         this_validation_loss,
-                        minibatch_finetune_cost, minibatch_mse_cost
+                        minibatch_finetune_cost, numpy.mean(minibatch_mse_cost)
                     )
                 )
 
@@ -392,12 +391,12 @@ def test_DBN(finetune_lr, pretraining_epochs, pretrain_lr, k, training_epochs,
                     test_losses = test_score()
                     test_error = numpy.mean(test_losses)
                     print(('     \tepoch %i, minibatch %i/%i, test MSE: '
-                           'best model %f\n') %
+                           'best model %f') %
                           (epoch, minibatch_index + 1, n_train_batches,
                            test_error))
 
                     # save the best model
-                    with open('best_model_actual_data.pkl', 'wb') as f:
+                    with open(model_out_filename, 'wb') as f:
                         pickle.dump(dbn, f, protocol=pickle.HIGHEST_PROTOCOL)
 
             if patience <= iter:
@@ -439,29 +438,44 @@ def predict(X_test, filename='best_model_actual_data.pkl'):
 
 
 if __name__ == '__main__':
-    X_train = numpy.random.rand(5000, 500) * .75 + .25
-    X_train = numpy.append(X_train, numpy.random.rand(5000, 500) * .75, axis=0)
+    X_train = numpy.random.rand(2500, 2) * .4
+    X_train = numpy.append(X_train,numpy.random.rand(2500, 2) * .4 + .6,axis=0)
+    X_train = numpy.append(X_train, numpy.random.rand(5000, 2) * .4+.3, axis=0)
 
-    y_train = numpy.random.rand(5000, 2) * .3
-    y_train = numpy.append(y_train, numpy.random.rand(5000, 2) * .3 + .7, axis=0)
+    y_train = numpy.random.rand(5000, 2) * .3 + .7
+    y_train = numpy.append(y_train, numpy.random.rand(5000, 2) * .3 , axis=0)
 
-    X_val = numpy.random.rand(1000, 500) * .75 + .25
-    X_val = numpy.append(X_val, numpy.random.rand(1000, 500) * .75, axis=0)
+    X_val = numpy.random.rand(500, 2) * .4
+    X_val = numpy.append(X_val,numpy.random.rand(500, 2) * .4 + .6,axis=0)
+    X_val = numpy.append(X_val, numpy.random.rand(1000, 2) * .4+.3, axis=0)
 
-    y_val = numpy.random.rand(1000, 2) * .3
-    y_val = numpy.append(y_val, numpy.random.rand(1000, 2) * .3 + .7, axis=0)
+    y_val = numpy.random.rand(1000, 2) * .3+ .7
+    y_val = numpy.append(y_val, numpy.random.rand(1000, 2) * .3 , axis=0)
 
-    X_test = numpy.random.rand(1000, 500) * .75 + .25
-    X_test = numpy.append(X_test, numpy.random.rand(1000, 500) * .75, axis=0)
+    X_test = numpy.random.rand(500, 2) * .4
+    X_test = numpy.append(X_test,numpy.random.rand(500, 2) * .4 + .6,axis=0)
+    X_test = numpy.append(X_test, numpy.random.rand(1000, 2) * .4+.3, axis=0)
 
-    y_test = numpy.random.rand(1000, 2) * .3
-    y_test = numpy.append(y_test, numpy.random.rand(1000, 2) * .3 + .7, axis=0)
+    y_test = numpy.random.rand(1000, 2) * .3+ .7
+    y_test = numpy.append(y_test, numpy.random.rand(1000, 2) * .3 , axis=0)
 
     data = [(X_train, y_train), (X_val, y_val), (X_test, y_test)]
     print('Need to figureout if self.y = T.matrix or T.vector is correct for the problem')
-    test_DBN(finetune_lr=0.01, pretraining_epochs=5,
-             pretrain_lr=0.01, k=1, training_epochs=1000,
-             L1_reg=0.00, L2_reg=0.0001,
-             dataset=data, batch_size=500,
+    test_DBN(finetune_lr=0.1, pretraining_epochs=5,
+             pretrain_lr=0.01, k=1, training_epochs=5000,
+             L1_reg=0.00, L2_reg=0.0001,model_out_filename='test_model',
+             dataset=data, batch_size=50,
              layer_sizes=[10, 10, 10], output_classes=2
              )
+
+    out=predict( X_test,filename='test_model')
+
+    plt.scatter(X_test[:,0],out[:,0])
+    plt.show()
+    plt.scatter(X_test[:,0],y_test[:,0])
+    # hist, bins = numpy.histogram(out, bins=100)
+    # width = 0.7 * (bins[1] - bins[0])
+    # center = (bins[:-1] + bins[1:]) / 2
+    # plt.bar(center, hist, align='center', width=width)
+    # plt.show()
+    # print((y_test-out) ** 2).mean(axis=None)

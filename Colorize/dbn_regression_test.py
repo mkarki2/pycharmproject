@@ -5,7 +5,7 @@ import h5py
 from my_utility import tic, toc
 from sklearn.utils import shuffle
 from main_colorize import create_data
-from DBN_linear import test_DBN, predict
+from DBN_fa import test_DBN, predict
 
 
 def load_saved_data(filename):
@@ -23,17 +23,17 @@ def load_saved_data(filename):
 
 def train(load_from_file):
     if load_from_file == 1:
-        X, Y, norm = load_saved_data('data_YCrCb_normalized.h5')
+        X, Y, norm = load_saved_data('data_YCrCb_normalized1.h5')
     else:
-        X, Y, norm = create_data(folder='/home/exx/PycharmProjects/Train_Imgs/', num_samples=30, save=1,
-                                 output_filename='data_YCrCb_normalized.h5', test_flag=0)
+        X, Y, norm = create_data(folder='/home/exx/PycharmProjects/Train_Imgs2/', num_samples=12, save=1,
+                                 output_filename='data_YCrCb_normalized1.h5', test_flag=0)
 
-    data = divide_data(X, Y, num_train=26, num_val=3)
+    data = divide_data(X, Y, num_train=8, num_val=2)
 
-    test_DBN(finetune_lr=0.1, pretraining_epochs=3, L1_reg=0.00, k=1,
-             pretrain_lr=0.01, training_epochs=1000, L2_reg=0.0001,
-
-             dataset=data, batch_size=1024, layer_sizes=[100, 100,100], output_classes=2)
+    test_DBN(finetune_lr=0.1, pretraining_epochs=10, L1_reg=0.00, k=1,
+             pretrain_lr=0.005, training_epochs=8000, L2_reg=0.0001,
+             model_out_filename='best_model12.pkl',
+             dataset=data, batch_size=1024, layer_sizes=[50,20,10], output_classes=2)
 
     return
 
@@ -41,17 +41,17 @@ def train(load_from_file):
 def predictor(load_from_file):
     reconstruct_image = 1
 
-    X_all, Y_all, norm = load_saved_data('data_YCrCb_normalized.h5')
+    X_all, Y_all, norm = load_saved_data('data_YCrCb_normalized1.h5')
 
-    data = divide_data(X_all, Y_all, num_train=26, num_val=3)
+    data = divide_data(X_all, Y_all, num_train=1, num_val=1)
     X_, Y_ = data[0]
 
-    num_samples = 10
+    num_samples = 4
     if load_from_file == 1:
-        X, Y, _ = load_saved_data('separate_test_YCrCb.h5')
+        X, Y, _ = load_saved_data('separate_test_YCrCb1.h5')
     else:
-        X, Y, _ = create_data(num_samples, folder='/home/exx/PycharmProjects/Test_Imgs/', save=1,
-                              output_filename='separate_test_YCrCb.h5', test_flag=1)
+        X, Y, _ = create_data(num_samples, folder='/home/exx/PycharmProjects/Test_Imgs2/', save=1,
+                              output_filename='separate_test_YCrCb1.h5', test_flag=1)
 
     # Normalization
     max_x = norm[1]
@@ -63,14 +63,14 @@ def predictor(load_from_file):
     Z[:, 0] = X[:, 0]
 
     output = predict(Z,
-                     filename='best_model_actual_data.pkl')
+                     filename='best_model12.pkl')
 
     mse = ((Y * 255 - output * 255) ** 2).mean(axis=None)
 
     print('Prediction Completed with a MSE of :' + str(mse))
     if reconstruct_image == 1:
         display(X_, Y_, name='train')
-        display(Z, output, name='output_test')
+        display(Z, output, name='output')
     return
 
 
@@ -81,6 +81,7 @@ def display(X, Y, name):
     num_samples = int(len(Y_channel) / (224 * 224))
     Y_channel = Y_channel.reshape(num_samples, 224, 224, 1)
 
+
     CrCb_out = Y.reshape(num_samples, 224, 224, 2)
 
     out_imgs = np.concatenate((Y_channel, CrCb_out), axis=3).astype(np.float32)
@@ -88,7 +89,7 @@ def display(X, Y, name):
         output_img = (cv2.cvtColor(out_imgs[i, :, :, :], cv2.COLOR_YCR_CB2BGR))
         # cv2.imshow('disp',output_img)
 
-        output_folder = "/home/exx/PycharmProjects/Output_Imgs/"
+        output_folder = "/home/exx/PycharmProjects/Output_Imgs2/"
         cv2.imwrite(output_folder + name + str(i) + ".jpg", output_img * 255)
     print(name + ": Images saved at: " + output_folder)
     return
@@ -116,4 +117,4 @@ def divide_data(X, Y, num_train, num_val):
 if 1:
     train(load_from_file=0)#load "data" [maps +images] from file
 else:
-    predictor(load_from_file=1)
+    predictor(load_from_file=0)

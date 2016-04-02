@@ -359,8 +359,8 @@ def test_DBN(finetune_lr=0.1, pretraining_epochs=5,
 if __name__ == '__main__':
     test_DBN(finetune_lr=0.1, pretraining_epochs=5,
              pretrain_lr=0.01, k=1, training_epochs=50,
-             #dataset='mnist.pkl.gz', batch_size=10,
-             dataset='randomdata.csv', batch_size=1,
-             #n_ins=784, layer_sizes=[100, 50,20], output_classes=10,
-             n_ins=4, layer_sizes=[10, 10,10], output_classes=10,
+             dataset='mnist.pkl.gz', batch_size=10,
+             #dataset='randomdata.csv', batch_size=1,
+             n_ins=784, layer_sizes=[100, 50,20], output_classes=10,
+             #n_ins=4, layer_sizes=[10, 10,10], output_classes=10,
              load_from=None, save_to=None)
