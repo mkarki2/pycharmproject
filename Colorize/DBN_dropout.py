@@ -44,8 +44,17 @@ class SemiLastLayer(object):
         """ Returns the mean of squared errors of the linear regression on this data. """
         return  (T.mean(T.sqr(self.y_pred - y),axis=0))
 
-        # return T.mean(T.sqr(self.y_pred - y),axis=0)
-        # return T.mean(T.sqr(self.y_pred - y))
+def _dropout_from_layer(rng, layer, p):
+    """p is the probablity of dropping a unit
+    """
+    srng = theano.tensor.shared_randomstreams.RandomStreams(
+            rng.randint(999999))
+    # p=1-p because 1's indicate keep and p is prob of dropping
+    mask = srng.binomial(n=1, p=1-p, size=layer.shape)
+    # The cast is important because
+    # int * float32 = float64 which pulls things off the gpu
+    output = layer * T.cast(mask, theano.config.floatX)
+    return output
 
 class HiddenLayer(object):
     """
@@ -53,7 +62,7 @@ class HiddenLayer(object):
     code from the documentation, except for T.sigmoid instead of T.tanh.
     """
 
-    def __init__(self, rng, input, n_in, n_out, W=None, b=None, activation=T.tanh):
+    def __init__(self, rng, input, n_in, n_out,dropout_rate, W=None, b=None, activation=T.tanh):
         """
         :rng: A random number generator for initializing weights.
         :input: A symbolic tensor of shape (n_examples, n_in).
@@ -87,6 +96,7 @@ class HiddenLayer(object):
         # The output of all the inputs, "squashed" via the activation function.
         lin_output = T.dot(input, self.W) + self.b
         self.output = lin_output if activation is None else activation(lin_output)
+        self.output = _dropout_from_layer(rng, self.output, p=dropout_rate)
 
         # Miscellaneous stuff
         self.params = [self.W, self.b]
@@ -122,7 +132,7 @@ def convert_dataset(dataset):
 
 class DBN(object):
     def __init__(self, numpy_rng, n_ins,
-                 hidden_layers_sizes, n_outs, L1_reg, L2_reg, theano_rng=None):
+                 hidden_layers_sizes, n_outs, L1_reg, L2_reg, dropout_rate, theano_rng=None):
 
         self.sigmoid_layers = []
         self.rbm_layers = []
@@ -155,6 +165,7 @@ class DBN(object):
                                         input=layer_input,
                                         n_in=input_size,
                                         n_out=hidden_layers_sizes[i],
+                                        dropout_rate=dropout_rate,
                                         activation=T.nnet.sigmoid)
 
             # add the layer to our list of layers
@@ -313,7 +324,7 @@ def test_DBN(finetune_var, pretrain_var, L1_reg,L2_reg, dataset, batch_size, lay
         # construct the Deep Belief Network
         dbn = DBN(numpy_rng=numpy_rng, n_ins=features,
                   hidden_layers_sizes=layer_sizes,
-                  n_outs=output_classes,
+                  n_outs=output_classes,dropout_rate=0.3,
                   L1_reg=L1_reg, L2_reg=L2_reg)
 
         # setup the pretraining
